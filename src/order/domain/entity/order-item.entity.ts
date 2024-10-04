@@ -1,5 +1,7 @@
 import { Order } from '../entity/order.entity';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { ProductItem } from './product-item.entity';
+import { Product } from './product.entity';
 
 export interface ItemDetailCommand {
   productName: string;
@@ -14,6 +16,9 @@ export class OrderItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @ManyToOne(() => ProductItem, (productItem) => productItem.orderItem)
+  productItem: ProductItem;
+
   @Column()
   productName: string;
 
@@ -27,8 +32,8 @@ export class OrderItem {
   })
   price: number;
 
-  @ManyToOne(() => Order, (order) => order.orderItems)
-  order: Order;
+  @ManyToOne(() => Product, (product) => product.orderItems)
+  product: Product;
 
   constructor(itemCommand: ItemDetailCommand) {
     if (!itemCommand) {

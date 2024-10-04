@@ -1,6 +1,8 @@
 import { CreateOrderService } from '../use-case/create-order.service';
 import { OrderRepositoryInterface } from '../../domain/port/persistance/order.repository.interface';
+import { PromotionService } from '../use-case/promotion.service';
 import { Order } from '../../domain/entity/order.entity';
+import { ProductService } from './create-product.service';
 
 class OrderRepositoryFake {
   async save(order: Order): Promise<Order> {
@@ -8,12 +10,23 @@ class OrderRepositoryFake {
   }
 }
 
-const orderRepositoryFake =
-  new OrderRepositoryFake() as OrderRepositoryInterface;
+const productServiceMock = {
+  createProduct: jest.fn(),
+} as unknown as ProductService;
 
-describe("an order can't be created if the order have more than 5 item", () => {
+const promotionServiceMock = {
+  applyPromotion: jest.fn(),
+} as unknown as PromotionService;
+
+const orderRepositoryFake = new OrderRepositoryFake() as OrderRepositoryInterface;
+
+describe("an order can't be created if the order has more than 5 items", () => {
   it('should return an error', async () => {
-    const createOrderService = new CreateOrderService(orderRepositoryFake);
+    const createOrderService = new CreateOrderService(
+      orderRepositoryFake,
+      productServiceMock,
+      promotionServiceMock,
+    );
 
     await expect(
       createOrderService.execute({

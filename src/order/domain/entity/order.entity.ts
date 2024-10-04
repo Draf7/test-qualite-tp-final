@@ -3,12 +3,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Expose } from 'class-transformer';
 
 import { BadRequestException } from '@nestjs/common';
+import { Promotion } from './promotion.entity';
 
 export interface CreateOrderCommand {
   items: ItemDetailCommand[];
@@ -52,9 +54,9 @@ export class Order {
   @Expose({ groups: ['group_orders'] })
   customerName: string;
 
-  @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
-    nullable: true,
-  })
+  @ManyToOne(() => Order, (order) => order.orderItems)
+  order: Order;
+  
   @Expose({ groups: ['group_orders'] })
   orderItems: OrderItem[];
 
@@ -227,5 +229,28 @@ export class Order {
       .map((item) => item.productName)
       .join(', ');
     return `invoice number ${this.id}, with items: ${itemsNames}`;
+  }
+
+  addItem(itemCommand: ItemDetailCommand): void {
+    if (this.status !== OrderStatus.PENDING) {
+      throw new BadRequestException('Vous ne pouvez pas ajouter d\'articles à un ordre qui n\'est pas en attente.');
+    }
+
+    const newItem = new OrderItem(itemCommand);
+    this.orderItems.push(newItem);
+    this.price += newItem.price * newItem.quantity;
+  }
+
+  public applyPromotion(promotion: Promotion): void {
+    if (!promotion) {
+      throw new BadRequestException('Promotion invalid.');
+    }
+    this.price -= promotion.amount;
+  }
+
+  public createOrder(createOrderCommand: CreateOrderCommand, promotion?: Promotion): void {
+    if (promotion) {
+      this.applyPromotion(promotion);
+    }
   }
 }
